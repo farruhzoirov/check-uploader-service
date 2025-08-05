@@ -10,6 +10,8 @@ export class UploadService {
     return {
       success: true,
       message: 'Uploaded successfully',
+      succesCode: 200,
+      error: null,
       path: file.path,
     };
   }
