@@ -10,10 +10,23 @@ import { APP_GUARD } from '@nestjs/core';
     ThrottlerModule.forRoot({
       throttlers: [
         {
-          ttl: 300000, // 5-minute
-          limit: 3,
+          name: 'short',
+          ttl: 60000, // 1 minute
+          limit: 10, // 10 uploads per minute per IP
+        },
+        {
+          name: 'medium', 
+          ttl: 300000, // 5 minutes
+          limit: 30, // 30 uploads per 5 minutes per IP
+        },
+        {
+          name: 'long',
+          ttl: 3600000, // 1 hour
+          limit: 100, // 100 uploads per hour per IP
         },
       ],
+      // TODO: For production with clustering, use Redis storage:
+      // storage: new ThrottlerStorageRedisService(redisInstance),
     }),
     UploadModule,
   ],

@@ -1,10 +1,13 @@
-import { BadRequestException, Module } from '@nestjs/common';
+import { BadRequestException, Module, OnModuleInit } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 import * as path from 'path';
 import * as fs from 'fs';
 import { UploadController } from './upload.controller';
 import { UploadService } from './upload.service';
 import { diskStorage } from 'multer';
+
+// Cache for directory existence to avoid repeated checks
+const directoryCache = new Set<string>();
 
 const fileFilter = (req: Request, file: Express.Multer.File, cb: Function) => {
   const allowMimeTypes = [
@@ -15,14 +18,12 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: Function) => {
     'image/webp',
     'application/pdf',
   ];
-  console.log(file);
+  
   if (!allowMimeTypes.includes(file.mimetype.toLowerCase())) {
     return cb(new BadRequestException('Invalid file type'), false);
   }
-  const maxSize = 5 * 1024 * 1024;
-  if (file.size > maxSize) {
-    return cb(new BadRequestException('File size larger than limit!'), false);
-  }
+  
+  // File size validation moved to multer limits for better performance
   return cb(null, true);
 };
 
@@ -32,24 +33,50 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: Function) => {
       storage: diskStorage({
         destination: async (req, file, cb) => {
           const destinationDirectory = path.join('./vebinar-excel');
-          if (!fs.existsSync(destinationDirectory)) {
-            await fs.promises.mkdir(destinationDirectory, { recursive: true });
+          
+          // Use cache to avoid repeated directory checks
+          if (!directoryCache.has(destinationDirectory)) {
+            try {
+              // Use async mkdir with recursive option - more efficient
+              await fs.promises.mkdir(destinationDirectory, { recursive: true });
+              directoryCache.add(destinationDirectory);
+            } catch (error) {
+              return cb(error, null);
+            }
           }
+          
           cb(null, destinationDirectory);
         },
         filename: (req, file, cb) => {
-          const uniquePrefix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          // More efficient unique ID generation
+          const uniquePrefix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
           const sanitizedFileName = file.originalname
             .trim()
-            .replace(/\s+/g, '-');
+            .replace(/[^a-zA-Z0-9.-]/g, '-') // Better sanitization
+            .replace(/-+/g, '-'); // Remove duplicate hyphens
           cb(null, `${uniquePrefix}-${sanitizedFileName}`);
         },
       }),
       fileFilter: fileFilter,
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB - moved from fileFilter for better performance
+        files: 1, // Limit concurrent files
+      },
     }),
   ],
   controllers: [UploadController],
   providers: [UploadService],
 })
-export class UploadModule {}
+export class UploadModule implements OnModuleInit {
+  async onModuleInit() {
+    // Pre-create upload directory on module initialization
+    const uploadDir = path.join('./vebinar-excel');
+    try {
+      await fs.promises.mkdir(uploadDir, { recursive: true });
+      directoryCache.add(uploadDir);
+      console.log(`Upload directory initialized: ${uploadDir}`);
+    } catch (error) {
+      console.error('Failed to initialize upload directory:', error);
+    }
+  }
+}
