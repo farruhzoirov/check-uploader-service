@@ -38,12 +38,8 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: Function) => {
           cb(null, destinationDirectory);
         },
         filename: (req, file, cb) => {
-          const uniquePrefix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const sanitizedFileName = file.originalname
-            .trim()
-            .replace(/\s+/g, '-');
-          cb(null, `${uniquePrefix}-${sanitizedFileName}`);
+          const uniquePrefix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+          cb(null, `${uniquePrefix}`);
         },
       }),
       fileFilter: fileFilter,
