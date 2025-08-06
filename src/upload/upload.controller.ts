@@ -3,11 +3,11 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  UploadedFile,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { UploadService } from './upload.service';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('upload')
 export class UploadController {
@@ -15,8 +15,8 @@ export class UploadController {
 
   @HttpCode(HttpStatus.OK)
   @Post('file')
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadFile(@UploadedFile() file: Express.Multer.File) {
-    return this.uploadService.uploadFile(file);
+  @UseInterceptors(FilesInterceptor('file', 1))
+  async uploadFile(@UploadedFiles() files: Express.Multer.File[]) {
+    return this.uploadService.uploadFile(files);
   }
 }
