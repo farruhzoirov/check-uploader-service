@@ -17,6 +17,11 @@ async function bootstrap() {
     ],
   });
 
+  app.use((req: express.Request, res: Response, next: express.NextFunction) => {
+    console.log(req.ip);
+    next();
+  });
+
   app.use(express.json({ limit: '5mb' }));
   app.use(express.urlencoded({ limit: '5mb', extended: true }));
   app.useStaticAssets('vebinar-excel', { prefix: '/vebinar-excel' });
