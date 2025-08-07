@@ -15,7 +15,6 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: Function) => {
     'image/webp',
     'application/pdf',
   ];
-  console.log(file);
   if (!allowMimeTypes.includes(file.mimetype.toLowerCase())) {
     return cb(new BadRequestException('Invalid file type'), false);
   }
